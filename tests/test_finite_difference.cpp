@@ -149,3 +149,32 @@ TEST_CASE ("convergence, compared with std::exp")
     CHECK (ratio ([&] (double h) { return central_finite_difference <0, 2, 4> (f, h, x); })
         == doctest::Approx { 16.0 }.epsilon (0.01));
 }
+
+TEST_CASE ("the function is called as an lvalue, as it is called several times")
+{
+    // The rvalue overload stands for one that consumes the object (e.g.
+    // moves from a member): calling it more than once would be a use after
+    // move.
+        struct
+    function_t
+    {
+            double
+        operator () (double x) const&
+        {
+            return x * x;
+        }
+            double
+        operator () (double) &&
+        {
+            return 0.0;
+        }
+    };
+        volatile double
+    x = 1.0;
+        volatile double
+    h = 0.5;
+    CHECK (central_finite_difference <0, 1, 2> (function_t {}, h, x) == 2.0);
+    CHECK (central_finite_difference <0, 1, 4> (function_t {}, h, x) == 2.0);
+    CHECK (central_finite_difference <0, 2, 2> (function_t {}, h, x) == 2.0);
+    CHECK (central_finite_difference <0, 2, 4> (function_t {}, h, x) == 2.0);
+}

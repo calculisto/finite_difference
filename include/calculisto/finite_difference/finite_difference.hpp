@@ -34,9 +34,6 @@ central_finite_difference (auto&& F, auto&& delta, auto&&... args)
     static_assert (Index < sizeof... (args), "Invalid index");
 
         using
-    Function = decltype (F);
-
-        using
     detail::shift_by;
     if constexpr (Order == 1)
     {
@@ -48,8 +45,8 @@ central_finite_difference (auto&& F, auto&& delta, auto&&... args)
             xp1 = shift_by <Index> (+1 * delta, args...);
                 const auto
             r = (
-                - std::apply (std::forward <Function> (F), xm1)
-                + std::apply (std::forward <Function> (F), xp1)
+                - std::apply (F, xm1)
+                + std::apply (F, xp1)
             ) / 2 / delta;
             return r;
         }
@@ -65,10 +62,10 @@ central_finite_difference (auto&& F, auto&& delta, auto&&... args)
             xp2 = shift_by <Index> (+2 * delta, args...);
                 const auto
             r = (
-                  1 * std::apply (std::forward <Function> (F), xm2)
-                - 8 * std::apply (std::forward <Function> (F), xm1)
-                + 8 * std::apply (std::forward <Function> (F), xp1)
-                - 1 * std::apply (std::forward <Function> (F), xp2)
+                  1 * std::apply (F, xm2)
+                - 8 * std::apply (F, xm1)
+                + 8 * std::apply (F, xp1)
+                - 1 * std::apply (F, xp2)
             ) / 12 / delta;
             return r;
         }
@@ -89,9 +86,9 @@ central_finite_difference (auto&& F, auto&& delta, auto&&... args)
             xp1 = shift_by <Index> (+1 * delta, args...);
                 const auto
             r = (
-                  1 * std::apply (std::forward <Function> (F), xm1)
-                - 2 * std::apply (std::forward <Function> (F), x)
-                + 1 * std::apply (std::forward <Function> (F), xp1)
+                  1 * std::apply (F, xm1)
+                - 2 * std::apply (F, x)
+                + 1 * std::apply (F, xp1)
             ) / delta / delta;
             return r;
         }
@@ -109,11 +106,11 @@ central_finite_difference (auto&& F, auto&& delta, auto&&... args)
             xp2 = shift_by <Index> (+2 * delta, args...);
                 const auto
             r = (
-                - 1  * std::apply (std::forward <Function> (F), xm2)
-                + 16 * std::apply (std::forward <Function> (F), xm1)
-                - 30 * std::apply (std::forward <Function> (F), x)
-                + 16 * std::apply (std::forward <Function> (F), xp1)
-                - 1  * std::apply (std::forward <Function> (F), xp2)
+                - 1  * std::apply (F, xm2)
+                + 16 * std::apply (F, xm1)
+                - 30 * std::apply (F, x)
+                + 16 * std::apply (F, xp1)
+                - 1  * std::apply (F, xp2)
             ) / 12 / delta / delta;
             return r;
         }
