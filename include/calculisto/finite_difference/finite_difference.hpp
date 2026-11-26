@@ -1,5 +1,8 @@
 #pragma once
+#include <concepts>
+#include <cstddef>
 #include <tuple>
+#include <type_traits>
 
     namespace
 calculisto::finite_difference
@@ -13,9 +16,23 @@ detail
     {
             auto
         r = std::tuple { std::forward <Args> (args)... };
-        std::get <Index> (r) += delta;
+        std::get <Index> (r) = std::get <Index> (r) + delta;
         return r;
     }
+
+        // The argument X can be shifted by multiples of the step D without
+        // changing its type: an int argument would truncate a double step, a
+        // float one would round it.
+        template <class X, class D>
+        concept
+    shiftable_by = requires (X const& x, int k, D const& delta)
+    {
+        { x + k * delta } -> std::same_as <X>;
+    };
+
+        template <std::size_t Index, class... Args>
+        using
+    argument_t = std::remove_cvref_t <std::tuple_element_t <Index, std::tuple <Args...>>>;
 } // namespace detail
 
     template <std::size_t I> struct S;
@@ -27,6 +44,11 @@ detail
     >
     constexpr const auto
 central_finite_difference (auto&& F, auto&& delta, auto&&... args)
+    requires (Index < sizeof... (args))
+        and detail::shiftable_by <
+              detail::argument_t <Index, decltype (args)...>
+            , std::remove_cvref_t <decltype (delta)>
+        >
 {
     static_assert (Order > 0, "The order of derivation must be at least one");
     static_assert (Accuracy > 1, "The accuracy of derivation must be at least two");

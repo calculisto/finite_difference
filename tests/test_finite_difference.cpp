@@ -3,9 +3,23 @@
     using calculisto::finite_difference::central_finite_difference;
 #include <cmath>
 #include <cstddef>
+#include <utility>
 
 namespace
 {
+        // Whether central_finite_difference <Index> (a...) is a valid call.
+        template <std::size_t Index, class... A>
+        concept
+    callable = requires (A&&... a)
+    {
+        central_finite_difference <Index> (std::forward <A> (a)...);
+    };
+
+        constexpr auto
+    identity = [] (auto x) { return x; };
+
+        constexpr auto
+    identity_2 = [] (auto x, auto) { return x; };
         // x^N, computed by repeated multiplication: exact on the dyadic
         // values used below.
         template <int N>
@@ -177,4 +191,24 @@ TEST_CASE ("the function is called as an lvalue, as it is called several times")
     CHECK (central_finite_difference <0, 1, 4> (function_t {}, h, x) == 2.0);
     CHECK (central_finite_difference <0, 2, 2> (function_t {}, h, x) == 2.0);
     CHECK (central_finite_difference <0, 2, 4> (function_t {}, h, x) == 2.0);
+}
+
+TEST_CASE ("the shifted argument keeps its type: no narrowing")
+{
+    // A double step would be truncated by an int argument, and rounded by a
+    // float one (1000.f + 1e-6 == 1000.f).
+    static_assert (not callable <0, decltype (identity), double, int>);
+    static_assert (not callable <0, decltype (identity), double, float>);
+    static_assert (not callable <1, decltype (identity_2), double, double, int>);
+    static_assert (callable <0, decltype (identity), double, double>);
+    static_assert (callable <0, decltype (identity), float, float>);
+    static_assert (callable <0, decltype (identity), int, int>);
+    static_assert (callable <1, decltype (identity_2), double, int, double>);
+    // A float step on a double argument is exact.
+    static_assert (callable <0, decltype (identity), float, double>);
+        volatile double
+    x = 1.0;
+        volatile float
+    h = 0.5f;
+    CHECK (central_finite_difference (monomial <2>, h, x) == 2.0);
 }
