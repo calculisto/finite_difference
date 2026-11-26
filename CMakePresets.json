@@ -1,0 +1,264 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 25,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "dev",
+            "displayName": "Development: the default compiler",
+            "inherits": "base"
+        },
+        {
+            "name": "gcc",
+            "displayName": "gcc",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "name": "clang",
+            "displayName": "clang (libstdc++ on Linux, Apple's libc++ on macOS)",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "clang-libcxx",
+            "displayName": "clang with libc++",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_CXX_FLAGS": "-stdlib=libc++"
+            }
+        },
+        {
+            "name": "msvc",
+            "displayName": "MSVC (Windows only)",
+            "inherits": "base",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS_DEBUG": "/Zi /Ob0 /Od",
+                "CMAKE_EXE_LINKER_FLAGS_DEBUG": "/debug /INCREMENTAL:NO"
+            }
+        },
+        {
+            "name": "clang-cl",
+            "displayName": "clang-cl, with Microsoft's standard library (Windows only)",
+            "inherits": "base",
+            "toolset": "ClangCL",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "cacheVariables": {
+                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL",
+                "CMAKE_CXX_FLAGS_DEBUG": "/Zi /Ob0 /Od",
+                "CMAKE_EXE_LINKER_FLAGS_DEBUG": "/debug /INCREMENTAL:NO"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "dev",
+            "configurePreset": "dev",
+            "configuration": "Debug"
+        },
+        {
+            "name": "gcc",
+            "configurePreset": "gcc",
+            "configuration": "Debug"
+        },
+        {
+            "name": "clang",
+            "configurePreset": "clang",
+            "configuration": "Debug"
+        },
+        {
+            "name": "clang-libcxx",
+            "configurePreset": "clang-libcxx",
+            "configuration": "Debug"
+        },
+        {
+            "name": "msvc",
+            "configurePreset": "msvc",
+            "configuration": "Debug"
+        },
+        {
+            "name": "clang-cl",
+            "configurePreset": "clang-cl",
+            "configuration": "Debug"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "dev",
+            "configurePreset": "dev",
+            "configuration": "Debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "gcc",
+            "configurePreset": "gcc",
+            "configuration": "Debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "clang",
+            "configurePreset": "clang",
+            "configuration": "Debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "clang-libcxx",
+            "configurePreset": "clang-libcxx",
+            "configuration": "Debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "msvc",
+            "configurePreset": "msvc",
+            "configuration": "Debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "clang-cl",
+            "configurePreset": "clang-cl",
+            "configuration": "Debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "dev",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "dev"
+                },
+                {
+                    "type": "build",
+                    "name": "dev"
+                },
+                {
+                    "type": "test",
+                    "name": "dev"
+                }
+            ]
+        },
+        {
+            "name": "gcc",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "gcc"
+                },
+                {
+                    "type": "build",
+                    "name": "gcc"
+                },
+                {
+                    "type": "test",
+                    "name": "gcc"
+                }
+            ]
+        },
+        {
+            "name": "clang",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "clang"
+                },
+                {
+                    "type": "build",
+                    "name": "clang"
+                },
+                {
+                    "type": "test",
+                    "name": "clang"
+                }
+            ]
+        },
+        {
+            "name": "clang-libcxx",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "clang-libcxx"
+                },
+                {
+                    "type": "build",
+                    "name": "clang-libcxx"
+                },
+                {
+                    "type": "test",
+                    "name": "clang-libcxx"
+                }
+            ]
+        },
+        {
+            "name": "msvc",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "msvc"
+                },
+                {
+                    "type": "build",
+                    "name": "msvc"
+                },
+                {
+                    "type": "test",
+                    "name": "msvc"
+                }
+            ]
+        },
+        {
+            "name": "clang-cl",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "clang-cl"
+                },
+                {
+                    "type": "build",
+                    "name": "clang-cl"
+                },
+                {
+                    "type": "test",
+                    "name": "clang-cl"
+                }
+            ]
+        }
+    ]
+}

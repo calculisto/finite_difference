@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "../include/calculisto/finite_difference/finite_difference.hpp"
+#include <calculisto/finite_difference/finite_difference.hpp>
     using namespace calculisto::finite_difference;
     using doctest::Approx;
 
