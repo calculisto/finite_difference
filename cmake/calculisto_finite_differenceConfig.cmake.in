@@ -1,0 +1,5 @@
+@PACKAGE_INIT@
+
+include ("${CMAKE_CURRENT_LIST_DIR}/calculisto_finite_differenceTargets.cmake")
+
+check_required_components (calculisto_finite_difference)
