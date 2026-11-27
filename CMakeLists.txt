@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.25)
 
 project (calculisto_finite_difference
-    VERSION 0.0.0
+    VERSION 0.1.0
     DESCRIPTION "Central finite difference approximations of derivatives"
     LANGUAGES CXX
 )
