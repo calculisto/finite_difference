@@ -1,0 +1,37 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: gcc
+            os: ubuntu-24.04
+            preset: gcc
+          - name: clang
+            os: ubuntu-24.04
+            preset: clang
+          - name: Apple clang + libc++
+            os: macos-latest
+            preset: clang-libcxx
+          - name: MSVC
+            os: windows-latest
+            preset: msvc
+          - name: clang-cl
+            os: windows-latest
+            preset: clang-cl
+    steps:
+      - uses: actions/checkout@v5
+      - name: Show the CMake version
+        run: cmake --version
+      # Configure (doctest is downloaded if it is not installed), build and
+      # test.
+      - name: Configure, build and test
+        run: cmake --workflow --preset ${{ matrix.preset }}
