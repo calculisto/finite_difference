@@ -3,6 +3,7 @@
     using calculisto::finite_difference::central_finite_difference;
 #include <cmath>
 #include <cstddef>
+#include <string>
 #include <utility>
 
 namespace
@@ -13,6 +14,15 @@ namespace
     callable = requires (A&&... a)
     {
         central_finite_difference <Index> (std::forward <A> (a)...);
+    };
+
+        // Whether central_finite_difference <0, Order, Accuracy> (a...) is a
+        // valid call.
+        template <std::size_t Order, std::size_t Accuracy, class... A>
+        concept
+    callable_scheme = requires (A&&... a)
+    {
+        central_finite_difference <0, Order, Accuracy> (std::forward <A> (a)...);
     };
 
         constexpr auto
@@ -211,4 +221,56 @@ TEST_CASE ("the shifted argument keeps its type: no narrowing")
         volatile float
     h = 0.5f;
     CHECK (central_finite_difference (monomial <2>, h, x) == 2.0);
+}
+
+TEST_CASE ("only the implemented schemes are callable")
+{
+    static_assert (callable_scheme <1, 2, decltype (identity), double, double>);
+    static_assert (callable_scheme <1, 4, decltype (identity), double, double>);
+    static_assert (callable_scheme <2, 2, decltype (identity), double, double>);
+    static_assert (callable_scheme <2, 4, decltype (identity), double, double>);
+    static_assert (not callable_scheme <0, 2, decltype (identity), double, double>);
+    static_assert (not callable_scheme <3, 2, decltype (identity), double, double>);
+    static_assert (not callable_scheme <1, 0, decltype (identity), double, double>);
+    static_assert (not callable_scheme <1, 3, decltype (identity), double, double>);
+    static_assert (not callable_scheme <1, 6, decltype (identity), double, double>);
+}
+
+TEST_CASE ("the index must designate an argument")
+{
+    static_assert (not callable <1, decltype (identity), double, double>);
+    static_assert (not callable <2, decltype (identity_2), double, double, double>);
+    static_assert (not callable <0, decltype (identity), double>);
+}
+
+TEST_CASE ("the function must be callable with the arguments")
+{
+        constexpr auto
+    takes_string = [] (std::string const&) { return 0.0; };
+        constexpr auto
+    takes_two = [] (double, double) { return 0.0; };
+        struct
+    rvalue_only
+    {
+            double
+        operator () (double x) &&
+        {
+            return x;
+        }
+    };
+    static_assert (not callable <0, decltype (takes_string), double, double>);
+    static_assert (not callable <0, decltype (takes_two), double, double>);
+    // The function is called several times: it must be callable as an
+    // lvalue.
+    static_assert (not callable <0, rvalue_only, double, double>);
+}
+
+TEST_CASE ("the values of the function must support the arithmetic of the scheme")
+{
+        constexpr auto
+    returns_void = [] (double) {};
+        constexpr auto
+    returns_string = [] (double) { return std::string {}; };
+    static_assert (not callable <0, decltype (returns_void), double, double>);
+    static_assert (not callable <0, decltype (returns_string), double, double>);
 }

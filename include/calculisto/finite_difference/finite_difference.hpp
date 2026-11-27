@@ -12,13 +12,13 @@ calculisto::finite_difference
     namespace
 detail
 {
-        // The arguments, with the one at Index shifted by delta.
-        template <std::size_t Index, class T, class... Args>
+        // The arguments x, with the one at Index shifted by delta.
+        template <std::size_t Index, class... X>
         constexpr auto
-    shift_by (T const& delta, Args const&... args)
+    shift_by (auto const& delta, std::tuple <X...> const& x)
     {
-            std::tuple <Args...>
-        r { args... };
+            auto
+        r = x;
         std::get <Index> (r) = std::get <Index> (r) + delta;
         return r;
     }
@@ -83,7 +83,7 @@ detail
         // zero offset, so that it is passed unchanged (e.g. -0.0 stays -0.0).
         template <std::size_t Index, class Stencil, std::size_t I>
         constexpr auto
-    term (auto& F, auto const& delta, auto const&... args)
+    term (auto& F, auto const& delta, auto const& x)
     {
             constexpr auto
         offset = Stencil::offsets[I];
@@ -91,17 +91,19 @@ detail
         coefficient = Stencil::coefficients[I];
         if constexpr (offset == 0)
         {
-            return coefficient * F (args...);
+            return coefficient * std::apply (F, x);
         }
         else
         {
-            return coefficient * std::apply (F, shift_by <Index> (offset * delta, args...));
+                const auto
+            y = shift_by <Index> (offset * delta, x);
+            return coefficient * std::apply (F, y);
         }
     }
 
         template <std::size_t Index, std::size_t Order, std::size_t Accuracy>
         constexpr auto
-    evaluate (auto& F, auto const& delta, auto const&... args)
+    evaluate (auto& F, auto const& delta, auto const& x)
     {
             using
         S = stencil <Order, Accuracy>;
@@ -110,7 +112,7 @@ detail
             const auto
         sum = [&] <std::size_t... I> (std::index_sequence <I...>)
         {
-            return (... + term <Index, S, I> (F, delta, args...));
+            return (... + term <Index, S, I> (F, delta, x));
         } (std::make_index_sequence <size> {});
         if constexpr (Order == 1)
         {
@@ -132,31 +134,48 @@ detail
         { x + k * delta } -> std::same_as <X>;
     };
 
-        template <std::size_t Index, class... Args>
-        using
-    argument_t = std::remove_cvref_t <std::tuple_element_t <Index, std::tuple <Args...>>>;
-} // namespace detail
+        template <std::size_t Order, std::size_t Accuracy>
+        concept
+    implemented = requires { stencil <Order, Accuracy>::denominator; };
 
-    template <std::size_t I> struct S;
+        // The function F can be called with the arguments X, and its values
+        // support the arithmetic of a scheme of order Order with a step D.
+        template <std::size_t Order, class F, class D, class... X>
+        concept
+    differentiable = std::invocable <F&, X const&...>
+        and requires (std::invoke_result_t <F&, X const&...> const& r, int k, D const& delta)
+        {
+            (k * r + k * r) / k / delta;
+        }
+        and (Order == 1 or requires (std::invoke_result_t <F&, X const&...> const& r, int k, D const& delta)
+        {
+            (k * r + k * r) / k / delta / delta;
+        });
+} // namespace detail
 
     template <
           std::size_t Index = 0
         , std::size_t Order = 1
         , std::size_t Accuracy = 2
     >
-    constexpr const auto
-central_finite_difference (auto&& F, auto&& delta, auto&&... args)
+    constexpr auto
+central_finite_difference (auto&& F, auto const& delta, auto const&... args)
     requires (Index < sizeof... (args))
+        and detail::implemented <Order, Accuracy>
         and detail::shiftable_by <
-              detail::argument_t <Index, decltype (args)...>
+              std::remove_cvref_t <std::tuple_element_t <Index, std::tuple <decltype (args)...>>>
             , std::remove_cvref_t <decltype (delta)>
         >
+        and detail::differentiable <
+              Order
+            , std::remove_reference_t <decltype (F)>
+            , std::remove_cvref_t <decltype (delta)>
+            , std::remove_cvref_t <decltype (args)>...
+        >
 {
-    static_assert (Order > 0, "The order of derivation must be at least one");
-    static_assert (Accuracy > 1, "The accuracy of derivation must be at least two");
-    static_assert (Accuracy % 2 == 0, "The accuracy of derivation must be even");
-    static_assert (Index < sizeof... (args), "Invalid index");
-
-    return detail::evaluate <Index, Order, Accuracy> (F, delta, args...);
+    // The function is called with copies of the arguments, as const lvalues.
+        const std::tuple <std::remove_cvref_t <decltype (args)>...>
+    x { args... };
+    return detail::evaluate <Index, Order, Accuracy> (F, delta, x);
 }
 } // namespace calculisto::finite_difference
