@@ -134,6 +134,13 @@ detail
         { x + k * delta } -> std::same_as <X>;
     };
 
+        // The type of the argument at Index.
+        template <std::size_t Index, class... Args>
+        using
+    argument_t = std::remove_cvref_t <
+          std::tuple_element_t <Index, std::tuple <Args...>>
+    >;
+
         template <std::size_t Order, std::size_t Accuracy>
         concept
     implemented = requires { stencil <Order, Accuracy>::denominator; };
@@ -143,11 +150,19 @@ detail
         template <std::size_t Order, class F, class D, class... X>
         concept
     differentiable = std::invocable <F&, X const&...>
-        and requires (std::invoke_result_t <F&, X const&...> const& r, int k, D const& delta)
+        and requires (
+              std::invoke_result_t <F&, X const&...> const& r
+            , int k
+            , D const& delta
+        )
         {
             (k * r + k * r) / k / delta;
         }
-        and (Order == 1 or requires (std::invoke_result_t <F&, X const&...> const& r, int k, D const& delta)
+        and (Order == 1 or requires (
+              std::invoke_result_t <F&, X const&...> const& r
+            , int k
+            , D const& delta
+        )
         {
             (k * r + k * r) / k / delta / delta;
         });
@@ -163,7 +178,7 @@ central_finite_difference (auto&& F, auto const& delta, auto const&... args)
     requires (Index < sizeof... (args))
         and detail::implemented <Order, Accuracy>
         and detail::shiftable_by <
-              std::remove_cvref_t <std::tuple_element_t <Index, std::tuple <decltype (args)...>>>
+              detail::argument_t <Index, decltype (args)...>
             , std::remove_cvref_t <decltype (delta)>
         >
         and detail::differentiable <

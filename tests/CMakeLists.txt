@@ -12,7 +12,10 @@ FetchContent_Declare (doctest
 FetchContent_MakeAvailable (doctest)
 
 add_executable (tests tests.cpp test_finite_difference.cpp)
-target_link_libraries (tests PRIVATE calculisto::finite_difference doctest::doctest)
+target_link_libraries (tests PRIVATE
+    calculisto::finite_difference
+    doctest::doctest
+)
 set_target_properties (tests PROPERTIES CXX_EXTENSIONS OFF)
 
 # The tests are always built with warnings as errors, and run with the
@@ -23,10 +26,13 @@ set_target_properties (tests PROPERTIES CXX_EXTENSIONS OFF)
 # gives them to clangd.
 set (gnu      "$<CXX_COMPILER_FRONTEND_VARIANT:GNU>")
 set (msvc     "$<CXX_COMPILER_ID:MSVC>")
-set (clang_cl "$<AND:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_FRONTEND_VARIANT:MSVC>>")
+set (clang_cl
+    "$<AND:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_FRONTEND_VARIANT:MSVC>>"
+)
 target_compile_options (tests PRIVATE
     "$<${gnu}:-Wall;-Wextra;-Wpedantic;-Wconversion;-Wshadow;-Werror>"
-    "$<${gnu}:-fsanitize=address,undefined;-fno-sanitize-recover=all;-fno-omit-frame-pointer>"
+    "$<${gnu}:-fsanitize=address,undefined;-fno-sanitize-recover=all>"
+    "$<${gnu}:-fno-omit-frame-pointer>"
     "$<${msvc}:/W4;/WX;/permissive-;/Zc:preprocessor;/Zc:__cplusplus;/utf-8>"
     "$<${msvc}:/fsanitize=address>"
     "$<${clang_cl}:/W4;/WX;-Wpedantic;-Wconversion;-Wshadow;/utf-8>"
@@ -51,7 +57,9 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 # With clang-cl, the address sanitizer's DLL is in clang's runtime directory.
 # (clang-cl doesn't support the address sanitizer with the debug runtime
 # library: the clang-cl preset uses the release one.)
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
+    AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC"
+)
     execute_process (
         COMMAND "${CMAKE_CXX_COMPILER}" /clang:-print-runtime-dir
         OUTPUT_VARIABLE runtime_directory

@@ -29,7 +29,7 @@
         },
         {
             "name": "clang",
-            "displayName": "clang (libstdc++ on Linux, Apple's libc++ on macOS)",
+            "displayName": "clang (libstdc++ on Linux, libc++ on macOS)",
             "inherits": "base",
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "clang++"
@@ -60,7 +60,7 @@
         },
         {
             "name": "clang-cl",
-            "displayName": "clang-cl, with Microsoft's standard library (Windows only)",
+            "displayName": "clang-cl with Microsoft's library (Windows only)",
             "inherits": "base",
             "toolset": "ClangCL",
             "condition": {

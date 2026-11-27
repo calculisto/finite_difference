@@ -22,7 +22,9 @@ namespace
         concept
     callable_scheme = requires (A&&... a)
     {
-        central_finite_difference <0, Order, Accuracy> (std::forward <A> (a)...);
+        central_finite_difference <0, Order, Accuracy> (
+              std::forward <A> (a)...
+        );
     };
 
         constexpr auto
@@ -30,6 +32,12 @@ namespace
 
         constexpr auto
     identity_2 = [] (auto x, auto) { return x; };
+
+        using
+    identity_t = decltype (identity);
+
+        using
+    identity_2_t = decltype (identity_2);
         // x^N, computed by repeated multiplication: exact on the dyadic
         // values used below.
         template <int N>
@@ -85,6 +93,26 @@ namespace
     {
         (check_exact <K, P, N> (), ...);
     }
+
+        // The ratio of the errors of the scheme of order K and accuracy P on
+        // exp at 1, with the steps 0.1 and 0.05.
+        template <std::size_t K, std::size_t P>
+        double
+    convergence_ratio ()
+    {
+            volatile double
+        x = 1.0;
+            const auto
+        f = [] (double t) { return std::exp (t); };
+            const double
+        exact = std::exp (x);
+            const auto
+        error = [&] (double h)
+        {
+            return central_finite_difference <0, K, P> (f, h, x) - exact;
+        };
+        return error (0.1) / error (0.05);
+    }
 } // namespace
 
 TEST_CASE ("exact for the polynomials of degree less than order + accuracy")
@@ -95,7 +123,7 @@ TEST_CASE ("exact for the polynomials of degree less than order + accuracy")
     check_exact_up_to <2, 4> (std::make_integer_sequence <int, 6> {});
 }
 
-TEST_CASE ("leading error term, for the polynomial of degree order + accuracy")
+TEST_CASE ("leading error term for the polynomial of degree order + accuracy")
 {
     // The error is c h^P f^(K+P) (x), with c = 1/6, -1/30, 1/12 and -1/90.
     // With x = 1 and h = 1/2, it is exact.
@@ -113,7 +141,7 @@ TEST_CASE ("leading error term, for the polynomial of degree order + accuracy")
         == 30.0 - 0.5);
 }
 
-TEST_CASE ("default order and accuracy: first derivative, second order")
+TEST_CASE ("default order and accuracy: first derivative to second order")
 {
         volatile double
     x = 1.0;
@@ -147,34 +175,24 @@ TEST_CASE ("derivative with respect to the argument of the given index")
         == x * x * x * 20.0 * monomial <3> (y));
     // ... but not for the first derivative: error -h^4/30 * 120 x^3.
     CHECK (central_finite_difference <1, 1, 4> (f, h, x, y)
-        == x * x * x * 5.0 * monomial <4> (y) + x - 4.0 * h * h * h * h * x * x * x);
+        == x * x * x * 5.0 * monomial <4> (y) + x
+            - 4.0 * h * h * h * h * x * x * x);
 }
 
-TEST_CASE ("convergence, compared with std::exp")
+TEST_CASE ("convergence compared with std::exp")
 {
     // Halving the step divides the error by about 2^P.
-        volatile double
-    x = 1.0;
-        const auto
-    f = [] (double t) { return std::exp (t); };
-        const double
-    exact = std::exp (x);
-        const auto
-    ratio = [&] (auto scheme)
-    {
-        return (scheme (0.1) - exact) / (scheme (0.05) - exact);
-    };
-    CHECK (ratio ([&] (double h) { return central_finite_difference <0, 1, 2> (f, h, x); })
+    CHECK (convergence_ratio <1, 2> ()
         == doctest::Approx { 4.0 }.epsilon (0.01));
-    CHECK (ratio ([&] (double h) { return central_finite_difference <0, 1, 4> (f, h, x); })
+    CHECK (convergence_ratio <1, 4> ()
         == doctest::Approx { 16.0 }.epsilon (0.01));
-    CHECK (ratio ([&] (double h) { return central_finite_difference <0, 2, 2> (f, h, x); })
+    CHECK (convergence_ratio <2, 2> ()
         == doctest::Approx { 4.0 }.epsilon (0.01));
-    CHECK (ratio ([&] (double h) { return central_finite_difference <0, 2, 4> (f, h, x); })
+    CHECK (convergence_ratio <2, 4> ()
         == doctest::Approx { 16.0 }.epsilon (0.01));
 }
 
-TEST_CASE ("the function is called as an lvalue, as it is called several times")
+TEST_CASE ("the function is called as an lvalue: it is called several times")
 {
     // The rvalue overload stands for one that consumes the object (e.g.
     // moves from a member): calling it more than once would be a use after
@@ -207,15 +225,15 @@ TEST_CASE ("the shifted argument keeps its type: no narrowing")
 {
     // A double step would be truncated by an int argument, and rounded by a
     // float one (1000.f + 1e-6 == 1000.f).
-    static_assert (not callable <0, decltype (identity), double, int>);
-    static_assert (not callable <0, decltype (identity), double, float>);
-    static_assert (not callable <1, decltype (identity_2), double, double, int>);
-    static_assert (callable <0, decltype (identity), double, double>);
-    static_assert (callable <0, decltype (identity), float, float>);
-    static_assert (callable <0, decltype (identity), int, int>);
-    static_assert (callable <1, decltype (identity_2), double, int, double>);
+    static_assert (not callable <0, identity_t, double, int>);
+    static_assert (not callable <0, identity_t, double, float>);
+    static_assert (not callable <1, identity_2_t, double, double, int>);
+    static_assert (callable <0, identity_t, double, double>);
+    static_assert (callable <0, identity_t, float, float>);
+    static_assert (callable <0, identity_t, int, int>);
+    static_assert (callable <1, identity_2_t, double, int, double>);
     // A float step on a double argument is exact.
-    static_assert (callable <0, decltype (identity), float, double>);
+    static_assert (callable <0, identity_t, float, double>);
         volatile double
     x = 1.0;
         volatile float
@@ -225,22 +243,22 @@ TEST_CASE ("the shifted argument keeps its type: no narrowing")
 
 TEST_CASE ("only the implemented schemes are callable")
 {
-    static_assert (callable_scheme <1, 2, decltype (identity), double, double>);
-    static_assert (callable_scheme <1, 4, decltype (identity), double, double>);
-    static_assert (callable_scheme <2, 2, decltype (identity), double, double>);
-    static_assert (callable_scheme <2, 4, decltype (identity), double, double>);
-    static_assert (not callable_scheme <0, 2, decltype (identity), double, double>);
-    static_assert (not callable_scheme <3, 2, decltype (identity), double, double>);
-    static_assert (not callable_scheme <1, 0, decltype (identity), double, double>);
-    static_assert (not callable_scheme <1, 3, decltype (identity), double, double>);
-    static_assert (not callable_scheme <1, 6, decltype (identity), double, double>);
+    static_assert (callable_scheme <1, 2, identity_t, double, double>);
+    static_assert (callable_scheme <1, 4, identity_t, double, double>);
+    static_assert (callable_scheme <2, 2, identity_t, double, double>);
+    static_assert (callable_scheme <2, 4, identity_t, double, double>);
+    static_assert (not callable_scheme <0, 2, identity_t, double, double>);
+    static_assert (not callable_scheme <3, 2, identity_t, double, double>);
+    static_assert (not callable_scheme <1, 0, identity_t, double, double>);
+    static_assert (not callable_scheme <1, 3, identity_t, double, double>);
+    static_assert (not callable_scheme <1, 6, identity_t, double, double>);
 }
 
 TEST_CASE ("the index must designate an argument")
 {
-    static_assert (not callable <1, decltype (identity), double, double>);
-    static_assert (not callable <2, decltype (identity_2), double, double, double>);
-    static_assert (not callable <0, decltype (identity), double>);
+    static_assert (not callable <1, identity_t, double, double>);
+    static_assert (not callable <2, identity_2_t, double, double, double>);
+    static_assert (not callable <0, identity_t, double>);
 }
 
 TEST_CASE ("the function must be callable with the arguments")
@@ -265,7 +283,7 @@ TEST_CASE ("the function must be callable with the arguments")
     static_assert (not callable <0, rvalue_only, double, double>);
 }
 
-TEST_CASE ("the values of the function must support the arithmetic of the scheme")
+TEST_CASE ("the values of the function support the arithmetic of the scheme")
 {
         constexpr auto
     returns_void = [] (double) {};
